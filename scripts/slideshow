@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    echo "usage: $(basename $0) path [style]" 1>&2
+    [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; exit
+}
+
+[[ $1 == "-h" ]] || [[ $1 == "--help" ]] && usage "$@"
+
+[[ $# == 0 ]] || [[ $# -gt 2 ]] && usage "$@"
+
+! [ -e "$1" ] && echo "ERROR: $1 NOT EXISTS" 1>&2 && exit 1
+! [ -d "$1" ] && echo "ERROR: $1 NOT A DIRECTORY" 1>&2 && exit 1
+
+SAVER="/System/Library/Frameworks/ScreenSaver.framework/Resources/iLifeSlideshows.saver"
+APP="/System/Library/Frameworks/ScreenSaver.framework/Versions/A/Resources/ScreenSaverEngine.app"
+EXECUTABLE="/System/Library/CoreServices/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine"
+
+killall=false
+defaults -currentHost read com.apple.screensaver moduleDict | grep -q iLifeSlideshow || {
+    defaults -currentHost write com.apple.screensaver moduleDict -dict moduleName iLifeSlideshow path "$SAVER" type 0 || exit
+    killall=true
+}
+path="$(defaults -currentHost read com.apple.ScreenSaverPhotoChooser SelectedFolderPath)" || exit
+[[ $path != "$1" ]] && {
+    defaults -currentHost write com.apple.ScreenSaverPhotoChooser SelectedFolderPath "$1" || exit
+    killall=true
+}
+
+[[ $killall == true ]] && { killall cfprefsd System Preferences; }
+[ -e "$APP" ] && { /usr/bin/open -a "$APP"; exit; }
+
+! [ -e "$EXECUTABLE" ] && echo "ERROR: $EXECUTABLE NOT EXISTS" 1>&2 && exit 1
+
+tmp="$(mktemp).plist" || exit
+/usr/libexec/PlistBuddy \
+    -c "Add Label string 'ScreenSaver'" \
+    -c "Add Program string '$EXECUTABLE'" \
+    -c "Add RunAtLoad bool true" "$tmp" 1> /dev/null || exit
+/bin/launchctl remove ScreenSaver 2> /dev/null
+/bin/launchctl load -w "$tmp"

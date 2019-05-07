@@ -1,0 +1,14 @@
+{
+  "name": "mac-slideshow",
+  "version": "2019.4.13",
+  "description": "macOS slideshow screensaver",
+  "keywords": [
+    "slideshow",
+    "screensaver"
+  ],
+  "homepage": "https://github.com/looking-for-a-job/mac-slideshow",
+  "license": "Unlicense",
+  "bin": {
+    "slideshow": "./scripts/slideshow"
+  }
+}
